@@ -1,3 +1,5 @@
+import { openDB, type IDBPDatabase } from "idb";
+
 export interface GeneratedImage {
   id: string;
   url: string;
@@ -19,22 +21,44 @@ export interface FlowSession {
   images: GeneratedImage[];
 }
 
-const FLOW_STORAGE_KEY = "zenith-flow-sessions";
+const DB_NAME = "zenith-flow-db";
+const DB_VERSION = 1;
+const SESSIONS_STORE = "sessions";
 
-export function loadFlowSessions(): FlowSession[] {
+let dbInstance: IDBPDatabase | null = null;
+
+async function getDB(): Promise<IDBPDatabase> {
+  if (dbInstance) return dbInstance;
+
+  dbInstance = await openDB(DB_NAME, DB_VERSION, {
+    upgrade(db) {
+      if (!db.objectStoreNames.contains(SESSIONS_STORE)) {
+        const store = db.createObjectStore(SESSIONS_STORE, { keyPath: "id" });
+        store.createIndex("updatedAt", "updatedAt");
+      }
+    },
+  });
+
+  return dbInstance;
+}
+
+export async function loadFlowSessions(): Promise<FlowSession[]> {
   try {
-    const data = localStorage.getItem(FLOW_STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
+    const db = await getDB();
+    const sessions = await db.getAll(SESSIONS_STORE);
+    // Sort by updatedAt descending (most recent first)
+    return sessions.sort((a, b) => b.updatedAt - a.updatedAt);
   } catch {
     return [];
   }
 }
 
-export function saveFlowSessions(sessions: FlowSession[]) {
-  localStorage.setItem(FLOW_STORAGE_KEY, JSON.stringify(sessions));
+export async function saveFlowSession(session: FlowSession): Promise<void> {
+  const db = await getDB();
+  await db.put(SESSIONS_STORE, session);
 }
 
-export function createFlowSession(): FlowSession {
+export async function createFlowSession(): Promise<FlowSession> {
   const session: FlowSession = {
     id: `flow-${Date.now()}`,
     name: `Flow ${new Date().toLocaleString("zh-CN")}`,
@@ -42,28 +66,29 @@ export function createFlowSession(): FlowSession {
     updatedAt: Date.now(),
     images: [],
   };
-  const sessions = loadFlowSessions();
-  sessions.unshift(session);
-  saveFlowSessions(sessions);
+  await saveFlowSession(session);
   return session;
 }
 
-export function updateFlowSession(sessionId: string, images: GeneratedImage[]) {
-  const sessions = loadFlowSessions();
-  const idx = sessions.findIndex((s) => s.id === sessionId);
-  if (idx !== -1) {
-    sessions[idx].images = images;
-    sessions[idx].updatedAt = Date.now();
-    saveFlowSessions(sessions);
+export async function updateFlowSession(
+  sessionId: string,
+  images: GeneratedImage[]
+): Promise<void> {
+  const db = await getDB();
+  const session = await db.get(SESSIONS_STORE, sessionId);
+  if (session) {
+    session.images = images;
+    session.updatedAt = Date.now();
+    await db.put(SESSIONS_STORE, session);
   }
 }
 
-export function deleteFlowSession(sessionId: string) {
-  const sessions = loadFlowSessions().filter((s) => s.id !== sessionId);
-  saveFlowSessions(sessions);
+export async function deleteFlowSession(sessionId: string): Promise<void> {
+  const db = await getDB();
+  await db.delete(SESSIONS_STORE, sessionId);
 }
 
-// Flow input settings storage
+// Flow input settings storage (keep in localStorage - small data)
 export interface FlowInputSettings {
   aspectRatioIndex: number;
   resolutionIndex: number; // 0=1K, 1=2K - independent of aspect ratio

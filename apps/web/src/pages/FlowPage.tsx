@@ -19,7 +19,7 @@ import { Link } from "react-router-dom";
 import { encryptAndStore, decryptFromStore } from "@/lib/crypto";
 import {
   loadFlowSessions,
-  saveFlowSessions,
+  saveFlowSession,
   createFlowSession,
   deleteFlowSession,
   type FlowSession,
@@ -48,8 +48,7 @@ function FlowCanvas() {
   const { fitView } = useReactFlow();
 
   useEffect(() => {
-    const loaded = loadFlowSessions();
-    setSessions(loaded);
+    loadFlowSessions().then(setSessions);
   }, []);
 
   useEffect(() => {
@@ -70,11 +69,19 @@ function FlowCanvas() {
     (_nodeId: string, image: GeneratedImage) => {
       imagesRef.current = [...imagesRef.current, image];
       if (currentSessionId) {
-        const updated = sessions.map((s) =>
-          s.id === currentSessionId ? { ...s, images: imagesRef.current, updatedAt: Date.now() } : s
-        );
-        setSessions(updated);
-        saveFlowSessions(updated);
+        const currentSession = sessions.find((s) => s.id === currentSessionId);
+        if (currentSession) {
+          const updatedSession = {
+            ...currentSession,
+            images: imagesRef.current,
+            updatedAt: Date.now(),
+          };
+          const updated = sessions.map((s) =>
+            s.id === currentSessionId ? updatedSession : s
+          );
+          setSessions(updated);
+          saveFlowSession(updatedSession);
+        }
       }
     },
     [currentSessionId, sessions]
@@ -95,11 +102,13 @@ function FlowCanvas() {
   };
 
   const addNode = useCallback(
-    (config: { prompt: string; width: number; height: number; batchCount: number; seed: number }) => {
-      if (!currentSessionId) {
-        const newSession = createFlowSession();
+    async (config: { prompt: string; width: number; height: number; batchCount: number; seed: number }) => {
+      let sessionId = currentSessionId;
+      if (!sessionId) {
+        const newSession = await createFlowSession();
         setSessions((prev) => [newSession, ...prev]);
         setCurrentSessionId(newSession.id);
+        sessionId = newSession.id;
         imagesRef.current = [];
       }
       const newNodes: Node[] = [];
@@ -165,8 +174,8 @@ function FlowCanvas() {
     [nodes, edges, setNodes, setEdges, fitView, handleImageGenerated, currentSessionId]
   );
 
-  const handleNewSession = () => {
-    const newSession = createFlowSession();
+  const handleNewSession = async () => {
+    const newSession = await createFlowSession();
     setSessions((prev) => [newSession, ...prev]);
     setCurrentSessionId(newSession.id);
     setNodes([]);
@@ -183,8 +192,8 @@ function FlowCanvas() {
     nodeIdRef.current = 0;
   };
 
-  const handleDeleteSession = (sessionId: string) => {
-    deleteFlowSession(sessionId);
+  const handleDeleteSession = async (sessionId: string) => {
+    await deleteFlowSession(sessionId);
     const updated = sessions.filter((s) => s.id !== sessionId);
     setSessions(updated);
     if (currentSessionId === sessionId) {
