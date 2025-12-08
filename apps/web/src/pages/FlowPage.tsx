@@ -23,8 +23,12 @@ import {
   clearFlowState,
   type GeneratedImage,
 } from "@/lib/flow-storage";
-import UserPromptNode, { type UserPromptNodeData } from "@/components/flow/UserPromptNode";
-import AIResultNode, { type AIResultNodeData } from "@/components/flow/AIResultNode";
+import UserPromptNode, {
+  type UserPromptNodeData,
+} from "@/components/flow/UserPromptNode";
+import AIResultNode, {
+  type AIResultNodeData,
+} from "@/components/flow/AIResultNode";
 import { getLayoutedElements } from "@/components/flow/layout";
 import FloatingInput from "@/components/flow/FloatingInput";
 
@@ -51,7 +55,14 @@ function FlowCanvas() {
       setNodes((nds) =>
         nds.map((node) =>
           node.id === nodeId
-            ? { ...node, data: { ...node.data, imageUrl: image.url, duration: image.duration } }
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  imageUrl: image.url,
+                  duration: image.duration,
+                },
+              }
             : node
         )
       );
@@ -92,8 +103,10 @@ function FlowCanvas() {
               ...node,
               data: {
                 ...node.data,
-                imageUrl: image?.url || (node.data as AIResultNodeData).imageUrl,
-                duration: image?.duration || (node.data as AIResultNodeData).duration,
+                imageUrl:
+                  image?.url || (node.data as AIResultNodeData).imageUrl,
+                duration:
+                  image?.duration || (node.data as AIResultNodeData).duration,
                 onImageGenerated: handleImageGenerated,
               },
             };
@@ -111,7 +124,7 @@ function FlowCanvas() {
           setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 100);
         }
 
-        console.log(`Restored ${restoredNodes.length} nodes, ${state.images?.length || 0} images`);
+        // console.log(`Restored ${restoredNodes.length} nodes, ${state.images?.length || 0} images`);
       }
       setIsLoaded(true);
     });
@@ -154,11 +167,20 @@ function FlowCanvas() {
   };
 
   const addNode = useCallback(
-    (config: { prompt: string; width: number; height: number; batchCount: number; seed: number }) => {
+    (config: {
+      prompt: string;
+      width: number;
+      height: number;
+      batchCount: number;
+      seed: number;
+    }) => {
       const newNodes: Node[] = [];
       const newEdges: Edge[] = [];
       const lastNodeId = nodes.length > 0 ? nodes[nodes.length - 1].id : null;
-      const timestamp = new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+      const timestamp = new Date().toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
       const aspectRatio = `${config.width}:${config.height}`;
 
       const promptNodeId = `prompt-${++nodeIdRef.current}`;
@@ -209,7 +231,8 @@ function FlowCanvas() {
 
       const nextNodes = [...nodes, ...newNodes];
       const nextEdges = [...edges, ...newEdges];
-      const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(nextNodes, nextEdges);
+      const { nodes: layoutedNodes, edges: layoutedEdges } =
+        getLayoutedElements(nextNodes, nextEdges);
 
       setNodes(layoutedNodes);
       setEdges(layoutedEdges);
@@ -283,11 +306,16 @@ function FlowCanvas() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 w-full max-w-md mx-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-zinc-100 font-medium">API Configuration</h2>
-              <button onClick={() => setShowSettings(false)} className="text-zinc-500 hover:text-zinc-300">
+              <button
+                onClick={() => setShowSettings(false)}
+                className="text-zinc-500 hover:text-zinc-300"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <label className="block text-zinc-400 text-sm mb-2">Gitee AI API Key</label>
+            <label className="block text-zinc-400 text-sm mb-2">
+              Gitee AI API Key
+            </label>
             <input
               type="password"
               value={apiKey}
@@ -296,7 +324,9 @@ function FlowCanvas() {
               placeholder="Enter your Gitee AI API Key..."
               className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-zinc-700"
             />
-            <p className="text-zinc-500 text-xs mt-2">Key is encrypted and stored locally (shared with home page).</p>
+            <p className="text-zinc-500 text-xs mt-2">
+              Key is encrypted and stored locally (shared with home page).
+            </p>
           </div>
         </div>
       )}
