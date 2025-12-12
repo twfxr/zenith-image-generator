@@ -140,12 +140,10 @@ export function useImageGenerator() {
     }
   }
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!imageDetails?.url) return
-    const a = document.createElement('a')
-    a.href = imageDetails.url
-    a.download = `zenith-${Date.now()}.jpg`
-    a.click()
+    const { downloadImage } = await import('@/lib/utils')
+    await downloadImage(imageDetails.url, `zenith-${Date.now()}.png`, imageDetails.provider)
   }
 
   const handleUpscale = async () => {

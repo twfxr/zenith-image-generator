@@ -85,6 +85,7 @@ function AIResultNode({ id, data }: NodeProps) {
     onDelete,
   } = data as AIResultNodeData
   const [imageUrl, setImageUrl] = useState<string | null>(preloadedUrl || null)
+  const [imageProvider, setImageProvider] = useState<string | null>(null)
   const [loading, setLoading] = useState(!preloadedUrl)
   const [error, setError] = useState<string | null>(null)
   const [elapsed, setElapsed] = useState(0)
@@ -137,6 +138,7 @@ function AIResultNode({ id, data }: NodeProps) {
           seed
         )
         setImageUrl(imageDetails.url)
+        setImageProvider(imageDetails.provider)
         setDurationStr(imageDetails.duration)
         setLoading(false)
         onImageGenerated?.(id, {
@@ -161,12 +163,10 @@ function AIResultNode({ id, data }: NodeProps) {
     })()
   }, [prompt, width, height, aspectRatio, model, seed, id, onImageGenerated])
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!imageUrl) return
-    const a = document.createElement('a')
-    a.href = imageUrl
-    a.download = `zenith-${Date.now()}.png`
-    a.click()
+    const { downloadImage } = await import('@/lib/utils')
+    await downloadImage(imageUrl, `zenith-${Date.now()}.png`, imageProvider || undefined)
   }
 
   return (
