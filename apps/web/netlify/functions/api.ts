@@ -7,7 +7,7 @@
 
 import { handle } from '@hono/node-server/vercel'
 import type { Config } from '@netlify/functions'
-import { createApp } from '../../api/src/app'
+import { createApp } from '../../../api/src/app'
 
 // Parse CORS origins from environment variable
 const corsOrigins = process.env.CORS_ORIGINS
