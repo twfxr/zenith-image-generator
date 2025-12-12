@@ -25,24 +25,34 @@ import { getProvider, hasProvider } from './providers'
 /** Extract complete event data from SSE stream */
 function extractCompleteEventData(sseStream: string): unknown {
   const lines = sseStream.split('\n')
-  let isCompleteEvent = false
+  let currentEvent = ''
 
   for (const line of lines) {
     if (line.startsWith('event:')) {
-      const eventType = line.substring(6).trim()
-      if (eventType === 'complete') {
-        isCompleteEvent = true
-      } else if (eventType === 'error') {
-        throw new Error('Quota exhausted, please set HF Token')
-      } else {
-        isCompleteEvent = false
-      }
-    } else if (line.startsWith('data:') && isCompleteEvent) {
+      currentEvent = line.substring(6).trim()
+    } else if (line.startsWith('data:')) {
       const jsonData = line.substring(5).trim()
-      return JSON.parse(jsonData)
+      if (currentEvent === 'complete') {
+        return JSON.parse(jsonData)
+      }
+      if (currentEvent === 'error') {
+        // Parse actual error message from data
+        try {
+          const errorData = JSON.parse(jsonData)
+          const errorMsg =
+            errorData?.error || errorData?.message || JSON.stringify(errorData) || 'Unknown error'
+          throw new Error(errorMsg)
+        } catch (e) {
+          if (e instanceof SyntaxError) {
+            throw new Error(jsonData || 'Unknown SSE error')
+          }
+          throw e
+        }
+      }
     }
   }
-  throw new Error(`No complete event in response: ${sseStream.substring(0, 200)}`)
+  // No complete/error event found, show raw response for debugging
+  throw new Error(`Unexpected SSE response: ${sseStream.substring(0, 300)}`)
 }
 
 /** Call Gradio API for upscaling */
