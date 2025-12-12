@@ -3,7 +3,8 @@
 # Deploys frontend with Netlify Functions for API
 
 [build]
-  command = "pnpm build:shared && pnpm build:web"
+  base = "apps/web"
+  command = "cd ../.. && pnpm build:shared && pnpm build:web"
   publish = "dist"
   functions = "netlify/functions"
 
