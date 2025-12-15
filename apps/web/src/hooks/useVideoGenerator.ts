@@ -13,7 +13,7 @@ export interface VideoState {
 
 export function useVideoGenerator() {
   const [videoState, setVideoState] = useState<VideoState>({ status: 'idle' })
-  const pollingRef = useRef<NodeJS.Timeout>()
+  const pollingRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (videoState.status !== 'polling' || !videoState.taskId || !videoState.token) return
